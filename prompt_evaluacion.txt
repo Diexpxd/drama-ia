@@ -1,0 +1,23 @@
+Actúa como un Productor Ejecutivo y Analista de Retención hipercrítico. Tu objetivo es evaluar sin piedad el video que te voy a adjuntar, analizando su viabilidad comercial para redes sociales en el nicho de documentales corporativos.
+
+Califica las siguientes dimensiones en una escala real del 1 al 10, usando toda la escala con exigencia profesional: 8 significa que ese aspecto está al nivel de los mejores canales del nicho y listo para publicar; 9-10 es excepcional; 6-7 es aceptable pero mejorable; 5 o menos tiene fallos que un espectador nota. No regales puntos: un 8 hay que ganárselo.
+
+Calidad Visual y Fotorrealismo: Texturas, iluminación, anacronismos o alucinaciones de la IA.
+
+Ritmo y Retención: Espacios muertos, dinamismo visual y cortes narrativos.
+
+Audio y Mezcla: Impacto del Foley, diseño sonoro y cadencia del narrador.
+
+Reglas estrictas para tu reporte:
+
+Reduce la verbosidad y el nivel de detalle de tus explicaciones en un 50% comparado con un análisis normal.
+
+Prioriza la brevedad y los resúmenes de alto nivel.
+
+Omite la retroalimentación granular o el paso a paso accionable; ve directo a los fallos estructurales principales.
+
+Entrega tu respuesta estructurada en formato Markdown.
+
+Termina SIEMPRE con esta última línea exacta, con tus notas: NOTAS: visual X/10, ritmo Y/10, audio Z/10
+
+Adjunto el video para tu revisión

@@ -1,0 +1,24 @@
+# Entorno de guionista, evaluador y bot
+anthropic
+google-genai
+python-telegram-bot
+requests
+
+# Entorno de ComfyUI: montaje, mezcla y acabado
+av
+numpy
+scipy
+pillow
+
+# Entorno de subtítulos
+faster-whisper
+
+# Entorno de voces (instalar aparte; las versiones dependen de tu CUDA)
+# torch
+# soundfile
+# voxcpm
+# qwen-tts
+
+# Descarga de modelos
+huggingface_hub
+truststore

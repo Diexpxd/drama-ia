@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drama-ia</title>
+<style>
+:root{
+  --fondo:#101114; --panel:#181a1f; --panel2:#20232a; --borde:#2d313a; --texto:#e6e6e6; --suave:#9aa0aa;
+  --acento:#f0b84a; --acento-t:#1a1300; --ok:#4cc38a; --mal:#e5534b; --info:#5b9cf0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--fondo);color:var(--texto);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--borde);border-radius:7px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--suave)}
+button.prim{background:var(--acento);color:var(--acento-t);border-color:var(--acento);font-weight:600}
+button.peligro{border-color:var(--mal);color:var(--mal)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{background:var(--fondo);border:1px solid var(--borde);border-radius:7px;padding:6px 8px;width:100%}
+textarea{resize:vertical;min-height:60px}
+label{display:block;color:var(--suave);font-size:12px;margin:10px 0 3px}
+h2{font-size:20px;margin:0 0 4px} h3{font-size:15px;margin:0 0 6px}
+.ayuda{color:var(--suave);margin:0 0 14px;max-width:820px}
+.fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rejilla2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+
+#app{display:grid;grid-template-rows:auto 1fr auto;height:100%}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--borde);background:var(--panel);flex-wrap:wrap}
+header .logo{font-weight:800;letter-spacing:.3px;color:var(--acento);margin-right:6px}
+header select{width:auto;min-width:200px}
+.esp{flex:1}
+.serv{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--borde);border-radius:20px;padding:3px 4px 3px 10px;font-size:12px}
+.punto{width:9px;height:9px;border-radius:50%;background:var(--mal)} .punto.on{background:var(--ok)}
+.serv button{padding:2px 9px;border-radius:14px;font-size:12px}
+
+#cuerpo{display:grid;grid-template-columns:220px 1fr;min-height:0}
+nav{border-right:1px solid var(--borde);padding:10px 8px;overflow:auto;background:var(--panel)}
+nav button{display:flex;width:100%;text-align:left;gap:8px;align-items:center;background:none;border:1px solid transparent;margin-bottom:3px;padding:8px 10px}
+nav button.activo{background:var(--panel2);border-color:var(--borde)}
+nav .n{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--borde);flex:none}
+nav .hecho .n{background:var(--ok);color:#06210f}
+nav .grupo{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--suave);margin:14px 10px 6px}
+nav .grupo:first-child{margin-top:4px}
+
+/* matriz de revisión: una fila por plano */
+.fm{display:grid;grid-template-columns:200px repeat(4,minmax(0,1fr));gap:10px;align-items:start;padding:10px;border:1px solid var(--borde);border-radius:10px;background:var(--panel);margin-bottom:8px}
+.fm.hay-algo{border-color:rgba(240,184,74,.55)}
+.fm .info h3{margin:0 0 4px} .fm .info p{margin:2px 0;font-size:12.5px;color:var(--suave)}
+.celda{background:var(--fondo);border:1px solid var(--borde);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;min-height:100%}
+.celda .medio{position:relative;background:#000;aspect-ratio:16/9;display:grid;place-items:center}
+.celda.v .medio{aspect-ratio:9/16;max-height:300px}
+.celda .medio img,.celda .medio video{width:100%;height:100%;object-fit:contain;display:block}
+.celda .medio .nada{color:var(--suave);font-size:12px;font-style:italic}
+.celda .barra{display:flex;align-items:center;gap:4px;padding:5px 6px;font-size:12px}
+.celda .barra .ver{flex:1;text-align:center;color:var(--suave);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.celda .barra button{padding:2px 7px;font-size:12px}
+.celda .tit{font-size:11px;color:var(--suave);padding:5px 7px 0;text-transform:uppercase;letter-spacing:.5px}
+.celda audio{width:100%;height:32px;margin:4px 0}
+.celda .texto{font-size:12px;padding:0 7px 4px}
+.marca{position:absolute;top:5px;left:5px;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:600}
+.marca.desactualizado{background:var(--acento);color:var(--acento-t)} .marca.falta{background:var(--mal);color:#fff}
+.chip{display:inline-block;padding:3px 10px;border-radius:14px;border:1px solid var(--borde);background:var(--panel2);font-size:12.5px}
+.chip.mal{border-color:var(--mal)} .chip.aviso2{border-color:var(--acento)} .chip.bien{border-color:var(--ok)}
+@media (max-width:1100px){.fm{grid-template-columns:1fr 1fr}.fm .info{grid-column:1/-1}}
+main{overflow:auto;padding:18px 22px 40px}
+
+.tarjeta{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:14px;margin-bottom:12px}
+.cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.etq{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;background:var(--panel2);border:1px solid var(--borde);color:var(--suave);margin-right:4px}
+.dialogo{color:var(--acento)} .narr{color:var(--info)}
+
+.galeria{display:flex;gap:10px;flex-wrap:wrap}
+.item{position:relative;border:2px solid transparent;border-radius:9px;overflow:hidden;background:#000;cursor:pointer;transition:border-color .12s}
+.item:hover{border-color:var(--suave)}
+.item.elegido{border-color:var(--acento);box-shadow:0 0 0 2px rgba(240,184,74,.25)}
+.item img,.item video{display:block;width:100%;height:100%;object-fit:contain}
+.item .pie{position:absolute;left:0;right:0;bottom:0;padding:3px 7px;font-size:11px;background:linear-gradient(transparent,rgba(0,0,0,.8));display:flex;justify-content:space-between}
+.item.elegido .pie b{color:var(--acento)}
+.h169{width:240px;aspect-ratio:16/9} .v916{width:150px;aspect-ratio:9/16}
+.h169.grande{width:360px} .v916.grande{width:220px}
+.audio{background:var(--panel2);border:2px solid var(--borde);border-radius:9px;padding:8px;min-width:250px}
+.audio.elegido{border-color:var(--acento)}
+.audio audio{width:100%;height:34px}
+.audio .fila{justify-content:space-between;margin-bottom:4px}
+.vacio{color:var(--suave);font-style:italic}
+
+footer{border-top:1px solid var(--borde);background:var(--panel)}
+#trabajo{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer}
+#trabajo .estado{font-weight:600}
+#log{display:none;margin:0;padding:8px 16px 12px;max-height:240px;overflow:auto;font:12px/1.35 Consolas,monospace;color:#cfd3da;white-space:pre-wrap;border-top:1px solid var(--borde)}
+footer.abierto #log{display:block}
+.spin{width:12px;height:12px;border:2px solid var(--borde);border-top-color:var(--acento);border-radius:50%;animation:g .8s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+
+dialog{background:var(--panel);color:var(--texto);border:1px solid var(--borde);border-radius:12px;width:min(520px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.aviso{padding:9px 12px;border-radius:8px;background:rgba(229,83,75,.12);border:1px solid rgba(229,83,75,.4);margin:0 0 12px}
+.toast{position:fixed;right:18px;bottom:70px;background:var(--panel2);border:1px solid var(--borde);padding:10px 14px;border-radius:9px;max-width:420px;z-index:9;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+@media (max-width:760px){#cuerpo{grid-template-columns:1fr} nav{display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid var(--borde)} nav button{width:auto;white-space:nowrap}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">drama-ia</span>
+    <select id="selProyecto"></select>
+    <button id="btnNuevo">+ Nuevo proyecto</button>
+    <button id="btnNuevoIA" title="La IA (Claude) investiga el tema en internet, verifica cada dato con 2 fuentes y escribe el guion">✨ Nuevo con IA</button>
+    <button id="btnPapelera" title="Proyectos eliminados: se pueden restaurar">🗑 Papelera</button>
+    <span class="esp"></span>
+    <span class="serv" title="Genera imágenes, vídeo, música y efectos"><span class="punto" id="pComfy"></span>ComfyUI <button id="bComfy">Encender</button></span>
+    <span class="serv" title="Solo para convertir el guion en planos"><span class="punto" id="pOllama"></span>Ollama <button id="bOllama">Encender</button></span>
+    <button class="peligro" id="btnApagar" title="Apaga el ComfyUI de drama-ia, el Ollama que haya arrancado drama-ia y esta interfaz (nunca otros programas)">Apagar todo</button>
+  </header>
+  <div id="cuerpo">
+    <nav id="pasos"></nav>
+    <main id="vista"><p class="vacio">Cargando…</p></main>
+  </div>
+  <footer id="pie">
+    <div id="trabajo"><span id="tIcono"></span><span class="estado" id="tEstado">Sin trabajos en marcha</span>
+      <span id="tUltima" style="color:var(--suave);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1"></span>
+      <button class="peligro" id="btnCancelar" style="display:none">Cancelar</button>
+      <span style="color:var(--suave);font-size:12px">▲ registro</span></div>
+    <pre id="log"></pre>
+  </footer>
+</div>
+
+<dialog id="dlgEliminar">
+  <h2>Eliminar proyecto</h2>
+  <div id="eInfo"><p class="vacio">Calculando tamaño…</p></div>
+  <p class="ayuda">Se mueve a la <b>papelera de drama-ia</b>: desaparece de la lista, pero se puede <b>restaurar</b> desde "🗑 Papelera" mientras no la vacíes.</p>
+  <label>Para confirmar, escribe el nombre del proyecto: <b id="eNombre"></b></label><input id="eConfirma" autocomplete="off">
+  <div class="fila" style="justify-content:flex-end;margin-top:16px"><button id="eCancelar">Cancelar</button><button class="peligro" id="eBorrar" disabled>Mover a la papelera</button></div>
+</dialog>
+
+<dialog id="dlgPapelera">
+  <h2>Papelera</h2>
+  <p class="ayuda">Proyectos eliminados. <b>Restaurar</b> los devuelve tal cual estaban. <b>Borrar definitivamente</b> libera el espacio y no se puede deshacer.</p>
+  <div id="pLista"></div>
+  <div id="pConfirmar" style="display:none;margin-top:12px" class="aviso">
+    <div id="pQue"></div>
+    <label>Escribe <b>BORRAR</b> para confirmar (no se puede deshacer)</label><input id="pConfirma" autocomplete="off">
+    <div class="fila" style="justify-content:flex-end;margin-top:8px"><button id="pNo">Cancelar</button><button class="peligro" id="pSi" disabled>Borrar definitivamente</button></div>
+  </div>
+  <div class="fila" style="justify-content:space-between;margin-top:16px"><button class="peligro" id="pVaciar">Vaciar toda la papelera…</button><button id="pCerrar">Cerrar</button></div>
+</dialog>
+
+<dialog id="dlgNuevoIA">
+  <h2>Nuevo vídeo con IA (datos verificados)</h2>
+  <p class="ayuda">La IA (Claude) investiga el tema en internet; este programa descarga las páginas y <b>comprueba que cada dato aparece literalmente en 2 fuentes distintas</b> y escribe el guion solo con lo verificado. Queda pendiente de tu aprobación antes de gastar GPU. Coste aproximado: unos 0,50 dólares por guion.</p>
+  <label>Tema</label><input id="iaTema" placeholder="The fall of Kodak / El fraude de Enron">
+  <label>Nombre de la carpeta (sin espacios)</label><input id="iaNombre" placeholder="kodak">
+  <div class="rejilla2">
+    <div><label>Duración de la narración (s)</label><input id="iaSeg" type="number" value="60" min="20" max="180"></div>
+    <div><label>Idioma de la narración</label><select id="iaIdioma"></select></div>
+  </div>
+  <label>Narrador fijo de la serie: copiar la voz ya elegida en</label><select id="iaVoz"><option value="">(ninguno: la elegiré después)</option></select>
+  <div class="fila" style="justify-content:flex-end;margin-top:16px"><button id="iaCancelar">Cancelar</button><button class="prim" id="iaCrear">Investigar y escribir</button></div>
+</dialog>
+
+<dialog id="dlgNuevo">
+  <h2>Nuevo proyecto</h2>
+  <p class="ayuda">Se crea con plantillas listas para rellenar. El género puede ser cualquier cosa.</p>
+  <label>Nombre de la carpeta (sin espacios)</label><input id="nNombre" placeholder="episodio1">
+  <label>Título</label><input id="nTitulo" placeholder="El último tren">
+  <label>Género</label><input id="nGenero" list="generos" placeholder="thriller policiaco en la Ciudad de México">
+  <datalist id="generos"></datalist>
+  <div class="rejilla2">
+    <div><label>Idioma de las voces</label><select id="nIdioma"></select></div>
+    <div><label>Formato</label><select id="nFormato"><option value="16:9">16:9 horizontal (YouTube)</option><option value="9:16">9:16 vertical (Shorts / TikTok / Reels)</option></select></div>
+  </div>
+  <label style="display:flex;gap:6px;align-items:center;margin-top:12px;color:var(--texto)"><input type="checkbox" id="nRealismo" style="width:auto"> Realismo estricto (documental: cero fantasía y cero anacronismos)</label>
+  <p class="ayuda" style="margin:6px 0 0">En vertical se activan solos el ritmo "narración" (sin huecos) y los subtítulos; se puede cambiar después.</p>
+  <div class="fila" style="justify-content:flex-end;margin-top:16px"><button id="nCancelar">Cancelar</button><button class="prim" id="nCrear">Crear</button></div>
+</dialog>
+
+<script>
+const PASOS = [
+  ["proyecto","Proyecto y guion"],["planos","Planos"],["personajes","Personajes"],["imagenes","Imágenes"],
+  ["videos","Vídeos"],["voces","Voces"],["labios","Labios"],["sonido","Música y efectos"],["final","Vídeo final"],
+  ["revision","Producción y revisión"]];
+// El flujo recomendado: A (decides tú) -> B (la máquina produce, tú revisas por excepción).
+const GRUPOS = [
+  ["A · Preparar (decides tú)", ["proyecto","planos","personajes","voces"]],
+  ["B · Producir y revisar", ["revision","final"]],
+  ["Vista detallada (control fino)", ["imagenes","videos","labios","sonido"]]];
+const IDIOMAS_N = {es:"Español",en:"Inglés",pt:"Portugués",fr:"Francés",de:"Alemán",it:"Italiano",ja:"Japonés",ko:"Coreano",zh:"Chino",ru:"Ruso"};
+let P = null, paso = "proyecto", trabajoActivo = false, meta = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function api(ruta, datos){
+  const r = await fetch(ruta, datos === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(datos)});
+  const j = await r.json();
+  if (!r.ok || j.error) throw new Error(j.error || r.statusText);
+  return j;
+}
+function aviso(txt, ms=4000){ const d=document.createElement("div"); d.className="toast"; d.textContent=txt; document.body.append(d); setTimeout(()=>d.remove(), ms); }
+function recordar(k,v){ try{ localStorage.setItem("dramaia_"+k, v); }catch(e){} }
+function recuerda(k){ try{ return localStorage.getItem("dramaia_"+k); }catch(e){ return null; } }
+
+// ------------------------------------------------------------ proyectos
+async function cargarLista(elegir){
+  meta = await api("/api/proyectos");
+  const sel = $("#selProyecto");
+  sel.innerHTML = meta.proyectos.map(p => `<option value="${esc(p.nombre)}">${esc(p.titulo)} · ${esc(p.formato)} · ${esc(p.idioma)}</option>`).join("");
+  const quiero = elegir || recuerda("proyecto");
+  if (quiero && meta.proyectos.some(p => p.nombre === quiero)) sel.value = quiero;
+  $("#generos").innerHTML = meta.generos_ejemplo.map(g => `<option value="${esc(g)}">`).join("");
+  $("#nIdioma").innerHTML = Object.keys(meta.idiomas).map(k => `<option value="${k}">${IDIOMAS_N[k]||k}</option>`).join("");
+  if (sel.value) await cargarProyecto(sel.value);
+}
+async function cargarProyecto(n){
+  n = n || P?.nombre; if (!n) return;
+  P = await api("/api/proyecto/" + encodeURIComponent(n));
+  recordar("proyecto", n);
+  pintarPasos(); pintar();
+}
+$("#selProyecto").onchange = e => { paso = "proyecto"; cargarProyecto(e.target.value); };
+
+function estadoRevision(){
+  if (!P?.matriz?.length) return false;
+  return P.matriz.every(f => Object.values(f.estados).every(e => e === "ok" || e === "no_aplica"));
+}
+function pintarPasos(){
+  const titulo = Object.fromEntries(PASOS);
+  const hecho = k => k === "revision" ? estadoRevision() : P?.estado?.[k];
+  let n = 0;
+  $("#pasos").innerHTML = GRUPOS.map(([g, ks]) => `<div class="grupo">${g}</div>` + ks.map(k => { n++;
+    return `<button data-p="${k}" class="${k===paso?"activo":""} ${hecho(k)?"hecho":""}"><span class="n">${hecho(k)?"✓":n}</span>${titulo[k]}</button>`; }).join("")).join("");
+  document.querySelectorAll("#pasos button").forEach(b => b.onclick = () => { paso = b.dataset.p; recordar("paso", paso); history.replaceState(null, "", "#" + paso); pintarPasos(); pintar(); });
+}
+
+// ------------------------------------------------------------ utilidades de vista
+const vertical = () => P.proyecto.formato === "9:16";
+// ?captura: sin reproducción automática (para capturas de pantalla automáticas; los vídeos en bucle las cuelgan)
+const AUTO = new URLSearchParams(location.search).has("captura") ? "" : "autoplay";
+const caja = (grande) => (vertical() ? "v916" : "h169") + (grande ? " grande" : "");
+function botonPaso(pasoId, texto, opciones={}, clase="prim"){
+  return `<button class="${clase}" data-ejecutar="${pasoId}" data-op='${esc(JSON.stringify(opciones))}' ${trabajoActivo?"disabled":""}>${texto}</button>`;
+}
+function conectarBotones(){
+  document.querySelectorAll("[data-ejecutar]").forEach(b => b.onclick = () => ejecutar(b.dataset.ejecutar, JSON.parse(b.dataset.op)));
+  document.querySelectorAll("[data-elegir]").forEach(el => el.onclick = async (ev) => {
+    ev.stopPropagation();
+    try { await api(`/api/proyecto/${encodeURIComponent(P.nombre)}/elegir`, JSON.parse(el.dataset.elegir)); await cargarProyecto(); }
+    catch(e){ aviso("No se pudo elegir: " + e.message); }
+  });
+}
+async function ejecutar(pasoId, op){
+  const campo = document.querySelector(`[data-planos-para="${pasoId}"]`);
+  if (campo && campo.value.trim()) op = {...op, planos: campo.value.trim().toUpperCase().replace(/\s+/g,"")};
+  try { await api(`/api/proyecto/${encodeURIComponent(P.nombre)}/ejecutar`, {paso: pasoId, opciones: op}); abrirLog(true); sondearTrabajo(); }
+  catch(e){
+    // estándar de publicación (8 en todo): se puede forzar, pero preguntando
+    if (pasoId === "final" && /estándar/.test(e.message) && confirm(e.message + "
+
+¿Hacer el render final igualmente?"))
+      return ejecutar(pasoId, {...(op || {}), forzar: true});
+    aviso(e.message, 8000);
+  }
+}
+function galeriaImagenes(items, elegido, datosElegir, grande){
+  if (!items.length) return `<p class="vacio">Todavía no hay variantes.</p>`;
+  return `<div class="galeria">${items.map(it => `
+    <div class="item ${caja(grande)} ${it.archivo===elegido?"elegido":""}" data-elegir='${esc(JSON.stringify(datosElegir(it)))}' title="Clic para elegir">
+      <img loading="lazy" src="${it.url}"><div class="pie"><span>${esc(it.archivo.replace(/\.png$/,""))}</span>${it.archivo===elegido?"<b>✓ elegida</b>":""}</div></div>`).join("")}</div>`;
+}
+function galeriaVideos(tomas, elegida, plano, filtro){
+  tomas = tomas.filter(filtro);
+  if (!tomas.length) return `<p class="vacio">Todavía no hay tomas.</p>`;
+  return `<div class="galeria">${tomas.map(t => `
+    <div>
+      <div class="item ${caja(true)} ${t.toma===elegida?"elegido":""}"><video src="${t.url}" ${AUTO} muted loop playsinline preload="metadata"></video>
+        <div class="pie"><span>${esc(t.toma)}</span>${t.toma===elegida?"<b>✓ en el montaje</b>":""}</div></div>
+      <div class="fila" style="margin-top:5px"><button data-elegir='${esc(JSON.stringify({tipo:"toma", plano, toma:t.toma}))}' ${t.toma===elegida?"disabled":""}>${t.toma===elegida?"Elegida":"Usar esta toma"}</button></div>
+    </div>`).join("")}</div>`;
+}
+function audioElegible(url, titulo, elegido, datosElegir){
+  return `<div class="audio ${elegido?"elegido":""}"><div class="fila"><b>${esc(titulo)}</b>
+    <button data-elegir='${esc(JSON.stringify(datosElegir))}' ${elegido?"disabled":""}>${elegido?"✓ Elegida":"Elegir"}</button></div>
+    <audio controls preload="none" src="${url}"></audio></div>`;
+}
+const soloPlanos = pasoId => `<input data-planos-para="${pasoId}" placeholder="solo estos planos, p. ej. P004,P008 (vacío = todos)" style="max-width:320px">`;
+async function guardarArchivo(archivo, contenido){
+  try { await api(`/api/proyecto/${encodeURIComponent(P.nombre)}/guardar`, {archivo, contenido}); aviso("Guardado ✓"); await cargarProyecto(); }
+  catch(e){ aviso("No se guardó: " + e.message, 7000); }
+}
+
+// ------------------------------------------------------------ pasos
+const VISTAS = {
+proyecto(){
+  const p = P.proyecto;
+  const pers = p.personajes.map((c,i) => `
+    <div class="tarjeta" data-pers="${i}">
+      <div class="cab"><h3>Personaje ${i+1}</h3><button class="peligro" data-quitar="${i}">Quitar</button></div>
+      <label>Nombre (tal cual en el guion)</label><input data-c="nombre" value="${esc(c.nombre)}">
+      <label>Aspecto (en inglés, muy concreto: edad, cara, pelo, ropa)</label><textarea data-c="descripcion">${esc(c.descripcion)}</textarea>
+      <label>Voz (en inglés: edad, grave/aguda, carácter, acento)</label><textarea data-c="voz">${esc(c.voz||"")}</textarea>
+    </div>`).join("");
+  return `
+  <h2>Proyecto y guion</h2>
+  ${P.aprobacion ? (P.aprobacion.estado === "aprobado"
+    ? `<p class="ayuda">✅ Guion de IA aprobado (${esc(P.aprobacion.por||"")} · ${esc((P.aprobacion.fecha_aprobacion||"").replace("T"," "))}). <a href="#" id="verFuentes">Ver fuentes</a></p>`
+    : `<div class="tarjeta" style="border-color:var(--acento)"><h3>⚠ Guion generado por IA pendiente de aprobación</h3>
+        <p class="ayuda" style="margin:4px 0 10px">Lee el guion (abajo) y comprueba las fuentes. Hasta que lo apruebes, "Producir" no gastará GPU. ${P.hechos.length} datos verificados.</p>
+        <details><summary>Datos verificados y sus fuentes</summary>${P.hechos.map(h => `<p style="margin:8px 0 2px"><b>${esc(h.id)}</b> ${esc(h.afirmacion)}</p>${(h.respaldos||[]).map(r => `<div style="font-size:12px;color:var(--suave);margin-left:14px">• <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a><br>&nbsp;&nbsp;«${esc(r.cita)}»</div>`).join("")}`).join("")}</details>
+        <div class="fila" style="justify-content:flex-end;margin-top:10px"><button class="prim" id="bAprobar">✅ Aprobar guion</button></div></div>`) : ""}
+  <p class="ayuda">Define el género, el aspecto visual y los personajes, y escribe la historia. Todo lo demás parte de aquí.</p>
+  <div class="tarjeta">
+    <div class="rejilla2">
+      <div><label>Título</label><input id="fTitulo" value="${esc(p.titulo||"")}"></div>
+      <div><label>Género (texto libre)</label><input id="fGenero" list="generos" value="${esc(p.genero)}"></div>
+      <div><label>Idioma de las voces</label><select id="fIdioma">${Object.keys(meta.idiomas).map(k=>`<option value="${k}" ${k===p.idioma?"selected":""}>${IDIOMAS_N[k]||k}</option>`).join("")}</select></div>
+      <div><label>Formato</label><select id="fFormato"><option value="16:9" ${p.formato==="16:9"?"selected":""}>16:9 horizontal (YouTube)</option><option value="9:16" ${p.formato==="9:16"?"selected":""}>9:16 vertical (Shorts / TikTok)</option></select></div>
+      <div><label>Ritmo</label><select id="fRitmo"><option value="normal" ${p.ritmo!=="narracion"?"selected":""}>Normal (cada plano su duración)</option><option value="narracion" ${p.ritmo==="narracion"?"selected":""}>Narración: manda la voz, sin huecos (Shorts)</option></select></div>
+    </div>
+    <div class="fila" style="margin-top:10px;gap:18px">
+      <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--texto)"><input type="checkbox" id="fRealismo" style="width:auto" ${p.realismo?"checked":""}> Realismo estricto (cero fantasía y cero anacronismos; para documentales)</label>
+      <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--texto)"><input type="checkbox" id="fSubtitulos" style="width:auto" ${p.subtitulos?"checked":""}> Subtítulos dinámicos en la versión final</label>
+    </div>
+    <label>Estilo visual de toda la serie (en inglés)</label><textarea id="fEstilo">${esc(p.estilo||"")}</textarea>
+    <label>Voz del narrador (en inglés; déjalo vacío si no hay narración)</label><textarea id="fNarrador">${esc(p.narrador?.voz||"")}</textarea>
+  </div>
+  <h3 style="margin-top:18px">Personajes</h3>
+  <div id="listaPers">${pers}</div>
+  <div class="fila"><button id="bAddPers">+ Añadir personaje</button><span class="esp"></span><button class="prim" id="bGuardarProy">Guardar proyecto</button></div>
+  <h3 style="margin-top:24px">Guion</h3>
+  <p class="ayuda">Cada escena empieza con <b>## Escena N: título</b>. Escribe las frases exactas de diálogos y narración: el sistema no inventa ninguna.</p>
+  <textarea id="fGuion" style="min-height:360px;font-family:Consolas,monospace">${esc(P.guion)}</textarea>
+  <div class="fila" style="margin-top:8px;justify-content:flex-end"><button class="prim" id="bGuardarGuion">Guardar guion</button></div>
+  <div class="tarjeta" style="margin-top:28px;border-color:rgba(229,83,75,.45)">
+    <div class="cab"><h3 style="color:var(--mal)">Zona peligrosa</h3></div>
+    <div class="fila"><span style="color:var(--suave);flex:1">Eliminar este proyecto y todo lo generado (imágenes, vídeos, voces, montajes). Va a la papelera: se puede restaurar.</span>
+      <button class="peligro" id="bEliminarProy" ${trabajoActivo && P.nombre===ultimoProyectoTrabajo?"disabled":""}>Eliminar este proyecto…</button></div>
+  </div>`;
+},
+planos(){
+  const planos = P.planos;
+  const lista = planos.map((p,i) => `
+    <div class="tarjeta" data-plano="${i}">
+      <div class="cab"><h3>${esc(p.id)} <span class="etq">${esc(p.tipo_plano)}</span><span class="etq">${p.duracion_s} s</span>${p.personajes.map(x=>`<span class="etq">${esc(x)}</span>`).join("")}</h3><span class="etq">${esc(p.escena)}</span></div>
+      <div>${esc(p.accion)}</div>
+      ${p.dialogo?`<div class="dialogo">🗨 ${esc(p.dialogo.personaje)}: «${esc(p.dialogo.texto)}»</div>`:""}
+      ${p.narracion?`<div class="narr">🎙 Narración: «${esc(p.narracion)}»</div>`:""}
+      <div class="rejilla2">
+        <div><label>Imagen inicial (inglés)</label><textarea data-k="prompt_imagen">${esc(p.prompt_imagen)}</textarea></div>
+        <div><label>Movimiento del vídeo (inglés)</label><textarea data-k="prompt_video">${esc(p.prompt_video)}</textarea></div>
+      </div>
+    </div>`).join("");
+  return `
+  <h2>Planos</h2>
+  <p class="ayuda">La IA divide tu guion en planos de 3–5 s (necesita Ollama encendido, ~1 min). Después puedes retocar los textos de cada plano. Si lo vuelves a generar, se guarda una copia del anterior.</p>
+  <div class="fila" style="margin-bottom:14px">${botonPaso("planos", planos.length?"Volver a generar planos":"Generar planos")}
+    ${planos.length?`<span class="esp"></span><span class="etq">${planos.length} planos · ${planos.reduce((a,p)=>a+p.duracion_s,0)} s</span><button class="prim" id="bGuardarPlanos">Guardar cambios</button>`:""}</div>
+  ${lista || `<p class="vacio">Aún no hay planos.</p>`}`;
+},
+personajes(){
+  return `
+  <h2>Personajes</h2>
+  <p class="ayuda">Genera varios retratos de cada personaje y haz clic en el mejor: será su referencia para que la cara no cambie en todo el episodio.</p>
+  <div class="fila" style="margin-bottom:14px">${botonPaso("personajes","Generar retratos",{variantes:4})}</div>
+  ${P.personajes.map(c => `<div class="tarjeta"><div class="cab"><h3>${esc(c.nombre)}</h3>${c.elegida?`<span class="etq">✓ referencia elegida</span>`:`<span class="etq">sin elegir</span>`}</div>
+    ${galeriaImagenes(c.variantes, c.elegida_archivo, it => ({tipo:"personaje", nombre:c.nombre, archivo:it.archivo}))}</div>`).join("")}`;
+},
+imagenes(){
+  const faltan = P.personajes.filter(c => !c.elegida).map(c=>c.nombre);
+  return `
+  <h2>Imágenes</h2>
+  <p class="ayuda">El fotograma inicial de cada plano (~5 s por imagen). Haz clic en la mejor de cada plano.</p>
+  ${faltan.length?`<p class="aviso">Sin retrato de referencia: ${esc(faltan.join(", "))}. Esas caras no serán constantes (paso Personajes).</p>`:""}
+  <div class="fila" style="margin-bottom:14px">${botonPaso("imagenes","Generar imágenes",{variantes:3})} ${soloPlanos("imagenes")}</div>
+  ${P.planos.map(p => `<div class="tarjeta"><div class="cab"><h3>${esc(p.id)} <span class="etq">${esc(p.tipo_plano)}</span></h3><span style="color:var(--suave)">${esc(p.accion)}</span></div>
+    ${galeriaImagenes(p.imagenes, p.imagen_elegida_archivo, it => ({tipo:"imagen", plano:p.id, archivo:it.archivo}))}</div>`).join("") || `<p class="vacio">Primero genera los planos.</p>`}`;
+},
+videos(){
+  return `
+  <h2>Vídeos</h2>
+  <p class="ayuda">Anima la imagen elegida de cada plano (~1 min por toma). Elige la toma que irá al montaje. Si ninguna vale, cambia su "movimiento" en Planos y genera más tomas solo de ese plano.</p>
+  <div class="fila" style="margin-bottom:14px">${botonPaso("videos","Generar vídeos",{tomas:2})} ${soloPlanos("videos")}</div>
+  ${P.planos.map(p => `<div class="tarjeta"><div class="cab"><h3>${esc(p.id)} <span class="etq">${esc(p.tipo_plano)}</span></h3><span style="color:var(--suave)">${esc(p.prompt_video)}</span></div>
+    ${p.imagen_elegida?"":`<p class="aviso">Sin imagen elegida: este plano se salta.</p>`}
+    ${galeriaVideos(p.tomas, p.toma_elegida, p.id, t => !t.toma.startsWith("labios"))}</div>`).join("") || `<p class="vacio">Primero genera los planos.</p>`}`;
+},
+voces(){
+  const lineas = P.planos.filter(p => p.dialogo || p.narracion);
+  return `
+  <h2>Voces</h2>
+  <p class="ayuda">1) Diseña voces a partir de la descripción de cada personaje y escúchalas. 2) Elige una por personaje (esto es parte del Punto A). 3) Locutar las frases lo hace solo "Producción y revisión"; el botón 3 es por si quieres hacerlo a mano. Idioma: <b>${IDIOMAS_N[P.proyecto.idioma]}</b>.</p>
+  <div class="fila" style="margin-bottom:14px">${botonPaso("voces_disenar","1 · Diseñar voces",{variantes:2})} ${botonPaso("voces_locutar","3 · Locutar frases",{}, "")}</div>
+  ${P.voces.map(v => `<div class="tarjeta"><div class="cab"><h3>${esc(v.nombre)}</h3>${v.elegida?`<span class="etq">✓ ${esc(v.elegida)}</span>`:`<span class="etq">sin elegir</span>`}</div>
+    <div class="galeria">${v.muestras.map(m => audioElegible(m.url, m.muestra.replace(v.nombre+"_",""), m.muestra===v.elegida, {tipo:"voz", muestra:m.muestra})).join("") || `<p class="vacio">Sin muestras todavía.</p>`}</div></div>`).join("") || `<p class="vacio">No hay diálogos ni narración en los planos.</p>`}
+  <h3 style="margin-top:18px">Frases locutadas</h3>
+  ${lineas.map(p => `<div class="tarjeta"><div class="cab"><h3>${esc(p.id)}</h3></div>
+    ${p.dialogo?`<div class="dialogo">🗨 ${esc(p.dialogo.personaje)}: «${esc(p.dialogo.texto)}»</div>`:""}${p.narracion?`<div class="narr">🎙 «${esc(p.narracion)}»</div>`:""}
+    ${p.voz.map(u=>`<audio controls preload="none" src="${u}" style="width:100%;max-width:420px;margin-top:6px"></audio>`).join("") || `<p class="vacio">Sin locutar.</p>`}</div>`).join("")}`;
+},
+labios(){
+  const conDialogo = P.planos.filter(p => p.dialogo);
+  return `
+  <h2>Labios</h2>
+  <p class="ayuda">Hace que el personaje mueva la boca al hablar (~3–4 min por plano). Funciona mejor en primeros planos. Necesita las frases locutadas (paso Voces).</p>
+  <div class="fila" style="margin-bottom:14px">${botonPaso("labios","Generar labios",{tomas:2})} ${soloPlanos("labios")}</div>
+  <details class="tarjeta"><summary>Planos con dos personas en cuadro (avanzado)</summary>
+    <p class="ayuda">Si en un plano con diálogo salen dos personas, marca la cara de quien habla y de quien calla: rectángulos [x1, y1, x2, y2] sobre la imagen elegida (${vertical()?"720x1280":"1280x720"}).</p>
+    <textarea id="fLabios" style="min-height:120px;font-family:Consolas,monospace">${esc(JSON.stringify(P.labios_json, null, 2))}</textarea>
+    <div class="fila" style="justify-content:flex-end;margin-top:6px"><button id="bGuardarLabios">Guardar</button></div></details>
+  ${conDialogo.map(p => `<div class="tarjeta"><div class="cab"><h3>${esc(p.id)}</h3><span class="dialogo">${esc(p.dialogo.personaje)}: «${esc(p.dialogo.texto)}»</span></div>
+    ${galeriaVideos(p.tomas, p.toma_elegida, p.id, t => t.toma.startsWith("labios"))}</div>`).join("") || `<p class="vacio">No hay planos con diálogo.</p>`}`;
+},
+sonido(){
+  return `
+  <h2>Música y efectos</h2>
+  <p class="ayuda">Describe la música y los efectos en el plan (en inglés), genera 3 variantes de cada uno y elige. "desde/hasta" = planos que cubre un ambiente o la música; "plano" + "en" = efecto puntual a X segundos de ese plano; "db" = volumen.</p>
+  <details class="tarjeta" ${P.sonidos.length?"":"open"}><summary>Plan de sonido (sonido.json)</summary>
+    <textarea id="fSonido" style="min-height:260px;font-family:Consolas,monospace;margin-top:8px">${esc(JSON.stringify(P.sonido_json, null, 2))}</textarea>
+    <div class="fila" style="justify-content:flex-end;margin-top:6px"><button id="bGuardarSonido">Guardar plan</button></div></details>
+  <div class="fila" style="margin-bottom:14px">${botonPaso("sonido_auto", P.sonidos.length ? "Proponer otro plan con IA" : "Proponer plan con IA", {}, P.sonidos.length ? "" : "prim")} ${botonPaso("sonido","Generar música y efectos",{variantes:3}, P.sonidos.length ? "prim" : "")}</div>
+  <p class="ayuda" style="margin-top:-6px">"Proponer plan con IA" (necesita Ollama) lee los planos y propone música, ambientes y efectos para cualquier género. Si ya editaste el plan a mano, no lo toca: deja la propuesta en <i>sonido_sugerido.json</i>.</p>
+  ${P.sonidos.map(s => `<div class="tarjeta"><div class="cab"><h3>${esc(s.id)} <span class="etq">${s.grupo==="musica"?"música":"efecto"}</span></h3><span style="color:var(--suave)">${esc(s.descripcion)}</span></div>
+    <div class="galeria">${s.variantes.map(v => audioElegible(v.url, v.variante, v.variante===s.elegida, {tipo:"sonido", id:s.id, variante:v.variante})).join("") || `<p class="vacio">Sin generar.</p>`}</div></div>`).join("")}`;
+},
+revision(){
+  const filas = P.matriz || [];
+  const cuenta = {falta:0, desactualizado:0};
+  filas.forEach(f => Object.values(f.estados).forEach(e => { if (e in cuenta) cuenta[e]++; }));
+  const faltaA = P.punto_a || [];
+  const v = vertical() ? " v" : "";
+  const marca = e => e === "desactualizado" ? `<span class="marca desactualizado">⚠ desactualizado</span>` : e === "falta" ? `<span class="marca falta">✗ falta</span>` : "";
+  const nav = (f, clase, lista, actual) => {
+    const i = lista.indexOf(actual);
+    const ant = i > 0 ? lista[i-1] : null, sig = i >= 0 && i < lista.length-1 ? lista[i+1] : null;
+    const btn = (valor, txt, t) => `<button title="${t}" ${valor&&!trabajoActivo?"":"disabled"} data-elegir='${esc(JSON.stringify({tipo:"version", clase, plano:f.id, valor:valor||""}))}'>${txt}</button>`;
+    return btn(ant,"◀","Versión anterior") + `<span class="ver">${esc((actual||"—").replace(f.id+"_","").replace(".png",""))}${lista.length>1?` · ${i+1}/${lista.length}`:""}</span>` + btn(sig,"▶","Versión siguiente");
+  };
+  const rehacer = (f, clase, texto) => botonPaso("orquestar", "↻", {planos:f.id, rehacer:clase}, "").replace("<button", `<button title="${texto}"`);
+  const celdaImagen = f => `<div class="celda${v}"><div class="tit">Imagen</div><div class="medio">${f.imagen.url?`<img loading="lazy" src="${f.imagen.url}">`:`<span class="nada">sin imagen</span>`}${marca(f.estados.imagen)}</div>
+      <div class="barra">${nav(f,"imagen",f.imagen.versiones.map(x=>x),f.imagen.actual)}${rehacer(f,"imagen","Regenerar imagen (y su vídeo y labios)")}</div></div>`;
+  const celdaVideo = (f, clase, d, titulo, textoRehacer) => d ? `<div class="celda${v}"><div class="tit">${titulo}</div><div class="medio">${d.url?`<video src="${d.url}" ${AUTO} muted loop playsinline preload="metadata"></video>`:`<span class="nada">sin generar</span>`}${marca(f.estados[clase])}</div>
+      <div class="barra">${nav(f,clase,d.versiones,d.actual)}${rehacer(f,clase,textoRehacer)}</div></div>` : `<div class="celda${v}"><div class="tit">${titulo}</div><div class="medio"><span class="nada">no hace falta (sin diálogo)</span></div></div>`;
+  const celdaVoz = f => {
+    if (!f.voz && !f.narr) return `<div class="celda"><div class="tit">Voz</div><div class="medio" style="aspect-ratio:auto;min-height:60px"><span class="nada">sin diálogo ni narración</span></div></div>`;
+    const bloque = (d, clase, quien) => `<div class="texto">${quien}: «${esc(d.texto)}» ${f.estados[clase]==="desactualizado"?"<b style='color:var(--acento)'>⚠</b>":f.estados[clase]==="falta"?"<b style='color:var(--mal)'>✗ falta</b>":""}</div>${d.url?`<audio controls preload="none" src="${d.url}"></audio>`:""}`;
+    return `<div class="celda"><div class="tit">Voz</div>${f.voz?bloque(f.voz,"voz",`🗨 ${esc(f.voz.hablante)}`):""}${f.narr?bloque(f.narr,"narr","🎙 Narrador"):""}
+      <div class="barra"><span class="ver">regenerar la locución</span>${rehacer(f,"voz","Regenerar voz (y sus labios)")}</div></div>`;
+  };
+  return `
+  <h2>Producción y revisión</h2>
+  <p class="ayuda">Cuando el Punto A está listo (guion, planos, retratos y voces), pulsa <b>Producir</b>: la máquina genera y elige sola la primera versión de todo, sin esperar clics. Luego revisa aquí y arregla solo lo que falle: <b>◀ ▶</b> vuelve a una versión anterior (instantáneo) y <b>↻</b> regenera solo esa celda y lo que dependa de ella.</p>
+  ${faltaA.length?`<p class="aviso"><b>Falta completar el Punto A:</b><br>${faltaA.map(esc).join("<br>")}</p>`:""}
+  <div class="fila" style="margin-bottom:12px">
+    ${botonPaso("orquestar", cuenta.falta||cuenta.desactualizado ? "▶ Producir lo pendiente" : "▶ Producir", {})}
+    <span class="chip ${cuenta.falta?"mal":"bien"}">✗ ${cuenta.falta} por generar</span>
+    <span class="chip ${cuenta.desactualizado?"aviso2":"bien"}">⚠ ${cuenta.desactualizado} desactualizados</span>
+    <span class="esp"></span>
+    ${P.finales.length?`<button onclick="paso='final';pintarPasos();pintar()">Ver vídeo →</button>`:""}
+  </div>
+  ${filas.map(f => {
+    const algo = Object.values(f.estados).some(e => e === "falta" || e === "desactualizado");
+    return `<div class="fm ${algo?"hay-algo":""}">
+      <div class="info"><h3>${esc(f.id)} <span class="etq">${esc(f.tipo_plano)}</span><span class="etq">${f.duracion_s} s</span></h3>
+        <p>${esc(f.accion)}</p><p><span class="etq">en el montaje: ${esc(f.en_montaje||"—")}</span></p></div>
+      ${celdaImagen(f)}
+      ${celdaVideo(f, "video", f.video, "Vídeo", "Regenerar vídeo (con la misma imagen)")}
+      ${celdaVoz(f)}
+      ${celdaVideo(f, "labios", f.labios, "Labios", "Regenerar labios (misma imagen y voz)")}
+    </div>`; }).join("") || `<p class="vacio">Primero genera los planos (paso Planos).</p>`}`;
+},
+final(){
+  const e = P.estado;
+  const pend = [["videos","tomas de vídeo"],["voces","voces"],["sonido","música y efectos"]].filter(([k])=>!e[k]).map(([,t])=>t);
+  return `
+  <h2>Vídeo final</h2>
+  <p class="ayuda"><b>Vista rápida</b>: monta y mezcla en 480p (~1 min), para revisar la historia. <b>Versión final</b>: reescala a ${vertical()?"1080x1920":"1920x1080"} (1080p), suaviza a 32 fps, monta y mezcla (~1 h para un Short de 16 planos).</p>
+  ${pend.length?`<p class="aviso">Aún falta: ${esc(pend.join(", "))}. Se montará con lo que haya.</p>`:""}
+  <div class="fila" style="margin-bottom:14px">${botonPaso("rapido","Vista rápida", {}, "")} ${botonPaso("evaluar","📊 Evaluar borrador", {}, "")} ${botonPaso("evaluar","📊 Evaluar final 1080p", {final:true}, "")} ${botonPaso("final","Versión final")}
+    ${botonPaso("subtitulos","Subtítulos a la vista rápida",{fuente:"videos"}, "")}</div>
+  <p class="ayuda" style="margin-top:-6px">Subtítulos: ${P.proyecto.subtitulos?"<b>activados</b>: la versión final sale también subtitulada (<i>_subtitulado</i>)":"desactivados (actívalos en Proyecto)"}. Ritmo: <b>${P.proyecto.ritmo==="narracion"?"narración (sin huecos)":"normal"}</b>.</p>
+  ${P.finales.map(f => `<div class="tarjeta"><div class="cab"><h3>${esc(f.nombre)}</h3></div>
+    <video src="${f.url}" controls preload="metadata" style="width:100%;max-width:${vertical()?"360px":"900px"};border-radius:8px;background:#000"></video>
+    <div style="color:var(--suave);font-size:12px;margin-top:4px">salidas\\${esc(P.nombre)}\\montaje\\${esc(f.nombre)}</div></div>`).join("") || `<p class="vacio">Todavía no hay montajes.</p>`}`;
+},
+};
+
+function pintar(){
+  if (!P){ $("#vista").innerHTML = `<p class="vacio">Crea un proyecto para empezar.</p>`; return; }
+  $("#vista").innerHTML = VISTAS[paso]();
+  conectarBotones();
+  if (paso === "proyecto") conectarProyecto();
+  if (paso === "planos" && $("#bGuardarPlanos")) $("#bGuardarPlanos").onclick = () => {
+    const limpios = P.planos.map((p,i) => {
+      const t = document.querySelector(`[data-plano="${i}"]`);
+      const {imagen_elegida, imagen_elegida_archivo, imagenes, tomas, toma_elegida, voz, ...resto} = p;
+      t.querySelectorAll("[data-k]").forEach(x => resto[x.dataset.k] = x.value);
+      return resto; });
+    guardarArchivo("planos.json", JSON.stringify(limpios));
+  };
+  if ($("#bGuardarSonido")) $("#bGuardarSonido").onclick = () => guardarArchivo("sonido.json", $("#fSonido").value);
+  if ($("#bGuardarLabios")) $("#bGuardarLabios").onclick = () => guardarArchivo("labios.json", $("#fLabios").value);
+}
+function conectarProyecto(){
+  const leer = () => {
+    const p = structuredClone(P.proyecto);
+    Object.assign(p, {titulo:$("#fTitulo").value, genero:$("#fGenero").value, idioma:$("#fIdioma").value,
+                      formato:$("#fFormato").value, estilo:$("#fEstilo").value, ritmo:$("#fRitmo").value,
+                      realismo:$("#fRealismo").checked, subtitulos:$("#fSubtitulos").checked});
+    p.personajes = [...document.querySelectorAll("[data-pers]")].map(t => {
+      const c = {}; t.querySelectorAll("[data-c]").forEach(x => c[x.dataset.c] = x.value); return c; });
+    const nv = $("#fNarrador").value.trim();
+    if (nv) p.narrador = {nombre:"Narrador", voz:nv}; else delete p.narrador;
+    return p;
+  };
+  $("#bGuardarProy").onclick = () => guardarArchivo("proyecto.json", JSON.stringify(leer()));
+  $("#bAddPers").onclick = () => { P.proyecto = leer(); P.proyecto.personajes.push({nombre:"", descripcion:"", voz:""}); pintar(); };
+  document.querySelectorAll("[data-quitar]").forEach(b => b.onclick = () => { P.proyecto = leer(); P.proyecto.personajes.splice(+b.dataset.quitar,1); pintar(); });
+  $("#bGuardarGuion").onclick = () => guardarArchivo("guion.md", $("#fGuion").value);
+  $("#bEliminarProy").onclick = abrirEliminar;
+  if ($("#bAprobar")) $("#bAprobar").onclick = async () => {
+    try { await api(`/api/proyecto/${encodeURIComponent(P.nombre)}/aprobar`, {por: "web"}); aviso("Guion aprobado: ya puedes Producir"); await cargarProyecto(); }
+    catch(e){ aviso(e.message, 7000); } };
+  if ($("#verFuentes")) $("#verFuentes").onclick = (ev) => { ev.preventDefault(); aviso(P.fuentes_md.split("\n").length - 2 + " fuentes en fuentes.md", 4000); };
+}
+
+// ------------------------------------------------------------ trabajo en curso
+let ultimoActivo = false, ultimoProyectoTrabajo = null;
+function abrirLog(si){ $("#pie").classList.toggle("abierto", si ?? !$("#pie").classList.contains("abierto")); }
+$("#trabajo").onclick = e => { if (e.target.id !== "btnCancelar") abrirLog(); };
+$("#btnCancelar").onclick = async () => { await api("/api/trabajo/cancelar", {}); };
+async function sondearTrabajo(){
+  let t; try { t = await api("/api/trabajo"); } catch(e){ return; }
+  trabajoActivo = t.activo; ultimoProyectoTrabajo = t.proyecto;
+  const nombres = {planos:"Generando planos",personajes:"Generando retratos",imagenes:"Generando imágenes",videos:"Generando vídeos",
+    voces_disenar:"Diseñando voces",sonido_auto:"Proponiendo plan de sonido",guion_ia:"Investigando y escribiendo (IA)",evaluar:"Evaluando con Gemini",voces_locutar:"Locutando frases",labios:"Sincronizando labios",sonido:"Generando música y efectos",
+    rapido:"Montando vista rápida",subtitulos:"Poniendo subtítulos",final:"Preparando versión final",orquestar:"Producción automática"};
+  const min = Math.floor(t.segundos/60), seg = String(t.segundos%60).padStart(2,"0");
+  $("#tIcono").innerHTML = t.activo ? `<span class="spin"></span>` : (t.codigo===0?"✅":t.codigo==null?"":t.cancelado?"⏹":"⚠️");
+  $("#tEstado").textContent = t.paso ? `${nombres[t.paso]||t.paso}${t.proyecto?" · "+t.proyecto:""} · ${min}:${seg}${t.activo?"":t.codigo===0?" · terminado":t.cancelado?" · cancelado":" · con error"}` : "Sin trabajos en marcha";
+  $("#tUltima").textContent = t.log.length ? t.log[t.log.length-1] : "";
+  $("#btnCancelar").style.display = t.activo ? "" : "none";
+  const log = $("#log"); const abajo = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+  log.textContent = t.log.join("\n"); if (abajo) log.scrollTop = log.scrollHeight;
+  if (ultimoActivo && !t.activo && t.paso === "guion_ia" && t.codigo === 0 && proyectoIAEsperado){
+    const n = proyectoIAEsperado; proyectoIAEsperado = null; paso = "proyecto"; await cargarLista(n); }
+  if (ultimoActivo && !t.activo){ if (t.codigo !== 0 && !t.cancelado) { abrirLog(true); aviso("El trabajo terminó con error: mira el registro", 7000); } await cargarProyecto(); }
+  else if (ultimoActivo !== t.activo) { pintar(); }
+  ultimoActivo = t.activo;
+}
+setInterval(sondearTrabajo, 1500);
+
+// ------------------------------------------------------------ servicios
+async function sondearServicios(){
+  try {
+    const s = await api("/api/servicios");
+    for (const [k,p,b] of [["comfyui","#pComfy","#bComfy"],["ollama","#pOllama","#bOllama"]]){
+      $(p).classList.toggle("on", s[k]); $(b).textContent = s[k] ? "Apagar" : "Encender"; $(b).dataset.on = s[k] ? "1" : "";
+    }
+  } catch(e){}
+}
+for (const [k,b] of [["comfyui","#bComfy"],["ollama","#bOllama"]]) $(b).onclick = async () => {
+  const on = $(b).dataset.on === "1";
+  $(b).textContent = on ? "Apagando…" : "Encendiendo…";
+  const r = await api("/api/servicios", {servicio:k, accion: on ? "detener" : "arrancar"});
+  if (on && r.mensaje && r.mensaje !== "apagado") aviso(r.mensaje, 7000);
+  if (!on) aviso(k === "comfyui" ? "ComfyUI tarda ~30 s en estar listo" : "Ollama listo en unos segundos");
+  setTimeout(sondearServicios, 2500);
+};
+setInterval(sondearServicios, 5000);
+$("#btnApagar").onclick = async () => {
+  if (trabajoActivo) { aviso("Hay un trabajo en marcha: cancélalo o espera a que termine"); return; }
+  await api("/api/apagar", {}).catch(()=>{});
+  document.body.innerHTML = `<p style="padding:40px;color:#9aa0aa">drama-ia apagado. Puedes cerrar esta pestaña.</p>`;
+};
+
+// ------------------------------------------------------------ eliminar y papelera
+const tam = b => b >= 1e9 ? (b/1e9).toFixed(1)+" GB" : b >= 1e6 ? (b/1e6).toFixed(0)+" MB" : Math.max(1, Math.round(b/1e3))+" KB";
+async function abrirEliminar(){
+  const n = P.nombre;
+  $("#eNombre").textContent = n; $("#eConfirma").value = ""; $("#eBorrar").disabled = true;
+  $("#eInfo").innerHTML = `<p class="vacio">Calculando tamaño…</p>`;
+  $("#dlgEliminar").showModal();
+  try {
+    const i = await api(`/api/proyecto/${encodeURIComponent(n)}/tamano`);
+    $("#eInfo").innerHTML = `<p class="aviso">Se moverá a la papelera:<br>
+      • Proyecto (guion, planos, retratos, voces elegidas): <b>${tam(i.proyecto_bytes)}</b> · ${i.proyecto_archivos} archivos<br>
+      • Lo generado (imágenes, vídeos, voces, música, montajes): <b>${tam(i.salidas_bytes)}</b> · ${i.salidas_archivos} archivos</p>`;
+  } catch(e){ $("#eInfo").innerHTML = `<p class="aviso">${esc(e.message)}</p>`; }
+}
+$("#eConfirma").oninput = () => { $("#eBorrar").disabled = $("#eConfirma").value.trim() !== P.nombre; };
+$("#eCancelar").onclick = () => $("#dlgEliminar").close();
+$("#eBorrar").onclick = async () => {
+  const n = P.nombre;
+  $("#eBorrar").disabled = true; $("#eBorrar").textContent = "Moviendo…";
+  try {
+    await api(`/api/proyecto/${encodeURIComponent(n)}/eliminar`, {confirmacion: $("#eConfirma").value.trim()});
+    $("#dlgEliminar").close(); P = null; recordar("proyecto", ""); paso = "proyecto";
+    await cargarLista(); if (!$("#selProyecto").value) pintar();
+    await pintarPapelera();
+    aviso(`"${n}" movido a la papelera. Se puede restaurar desde 🗑 Papelera.`, 6000);
+  } catch(e){ aviso("No se eliminó: " + e.message, 8000); }
+  finally { $("#eBorrar").textContent = "Mover a la papelera"; }
+};
+
+let borrarQue = null;  // id de la papelera, o "__todo__"
+async function pintarPapelera(){
+  const {papelera} = await api("/api/papelera");
+  $("#btnPapelera").textContent = papelera.length ? `🗑 Papelera (${papelera.length})` : "🗑 Papelera";
+  $("#pVaciar").disabled = !papelera.length;
+  $("#pLista").innerHTML = papelera.map(x => `<div class="tarjeta" style="padding:10px"><div class="fila">
+      <div style="flex:1"><b>${esc(x.nombre)}</b> <span class="etq">${esc(x.fecha)}</span><span class="etq">${tam(x.bytes)}</span>
+        ${x.existe_ya?`<br><span style="color:var(--acento);font-size:12px">Ya hay un proyecto con este nombre: no se puede restaurar hasta quitarlo</span>`:""}</div>
+      <button data-restaurar="${esc(x.id)}" ${x.existe_ya?"disabled":""}>Restaurar</button>
+      <button class="peligro" data-borrar="${esc(x.id)}" data-nombre="${esc(x.nombre)}" data-tam="${x.bytes}">Borrar definitivamente…</button></div></div>`).join("")
+    || `<p class="vacio">La papelera está vacía.</p>`;
+  document.querySelectorAll("[data-restaurar]").forEach(b => b.onclick = async () => {
+    try { const r = await api("/api/papelera/restaurar", {id: b.dataset.restaurar}); await cargarLista(r.nombre); await pintarPapelera(); aviso(`"${r.nombre}" restaurado`); }
+    catch(e){ aviso(e.message, 7000); } });
+  document.querySelectorAll("[data-borrar]").forEach(b => b.onclick = () => pedirBorrado(b.dataset.borrar, `Se borrará <b>${esc(b.dataset.nombre)}</b> (${tam(+b.dataset.tam)}) para siempre.`));
+}
+function pedirBorrado(que, texto){
+  borrarQue = que; $("#pQue").innerHTML = texto; $("#pConfirma").value = ""; $("#pSi").disabled = true;
+  $("#pConfirmar").style.display = "";
+}
+$("#pConfirma").oninput = () => { $("#pSi").disabled = $("#pConfirma").value.trim() !== "BORRAR"; };
+$("#pNo").onclick = () => { $("#pConfirmar").style.display = "none"; borrarQue = null; };
+$("#pSi").onclick = async () => {
+  try { const r = await api("/api/papelera/vaciar", {id: borrarQue === "__todo__" ? null : borrarQue, confirmacion: $("#pConfirma").value.trim()});
+        aviso(`Borrado definitivamente (${r.borrados})`); }
+  catch(e){ aviso(e.message, 7000); }
+  $("#pConfirmar").style.display = "none"; borrarQue = null; await pintarPapelera();
+};
+$("#pVaciar").onclick = () => pedirBorrado("__todo__", "Se borrará <b>todo lo que hay en la papelera</b> para siempre.");
+$("#btnPapelera").onclick = async () => { $("#pConfirmar").style.display = "none"; await pintarPapelera(); $("#dlgPapelera").showModal(); };
+$("#pCerrar").onclick = () => $("#dlgPapelera").close();
+
+// ------------------------------------------------------------ nuevo proyecto
+$("#btnNuevo").onclick = () => $("#dlgNuevo").showModal();
+$("#btnNuevoIA").onclick = () => {
+  $("#iaIdioma").innerHTML = Object.keys(meta.idiomas).map(k => `<option value="${k}" ${k==="en"?"selected":""}>${IDIOMAS_N[k]||k}</option>`).join("");
+  $("#iaVoz").innerHTML = `<option value="">(ninguno: la elegiré después)</option>` + meta.proyectos.map(p => `<option value="${esc(p.nombre)}">${esc(p.titulo)}</option>`).join("");
+  $("#dlgNuevoIA").showModal();
+};
+$("#iaCancelar").onclick = () => $("#dlgNuevoIA").close();
+let proyectoIAEsperado = null;
+$("#iaCrear").onclick = async () => {
+  const nombre = $("#iaNombre").value.trim(), tema = $("#iaTema").value.trim();
+  if (!/^[A-Za-z0-9_-]+$/.test(nombre) || !tema) { aviso("Pon un tema y un nombre sin espacios (letras, números, - y _)"); return; }
+  try {
+    await api(`/api/proyecto/${encodeURIComponent(nombre)}/ejecutar`, {paso: "guion_ia", opciones: {tema, segundos: +$("#iaSeg").value || 60,
+      idioma: $("#iaIdioma").value, voz_de: $("#iaVoz").value}});
+    proyectoIAEsperado = nombre; $("#dlgNuevoIA").close(); abrirLog(true); sondearTrabajo();
+    aviso("Investigando… verás el progreso abajo. Tarda 1-3 minutos.", 6000);
+  } catch(e){ aviso(e.message, 7000); }
+};
+$("#nCancelar").onclick = () => $("#dlgNuevo").close();
+$("#nCrear").onclick = async () => {
+  try {
+    const nombre = $("#nNombre").value.trim();
+    await api("/api/proyectos", {nombre, titulo:$("#nTitulo").value.trim()||nombre, genero:$("#nGenero").value.trim()||"historia corta",
+      idioma:$("#nIdioma").value, formato:$("#nFormato").value, realismo:$("#nRealismo").checked});
+    $("#dlgNuevo").close(); paso = "proyecto"; await cargarLista(nombre); aviso("Proyecto creado: rellena personajes y guion");
+  } catch(e){ aviso(e.message, 6000); }
+};
+
+const pasoUrl = location.hash.slice(1);
+paso = PASOS.some(([k]) => k === pasoUrl) ? pasoUrl : (recuerda("paso") || "proyecto");
+cargarLista().then(() => { sondearTrabajo(); sondearServicios(); pintarPapelera().catch(()=>{}); }).catch(e => $("#vista").innerHTML = `<p class="aviso">Error: ${esc(e.message)}</p>`);
+</script>
+</body>
+</html>
