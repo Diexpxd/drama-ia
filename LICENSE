@@ -1,0 +1,27 @@
+Copyright (c) 2026 Diego Gonzalez Rodriguez. Todos los derechos reservados.
+
+Este código se publica únicamente para consulta y evaluación, por ejemplo como
+muestra de trabajo. Sin permiso previo y por escrito del autor no se permite
+copiar, modificar, distribuir, sublicenciar ni utilizar este software, total o
+parcialmente, con ningún fin.
+
+El software se ofrece "tal cual", sin garantía de ningún tipo.
+
+Los modelos de IA y servicios que usa (FLUX.2 Klein, Wan 2.2, VoxCPM2,
+Qwen3-TTS, ACE-Step, Stable Audio, ComfyUI, Ollama y las APIs de Claude y
+Gemini) se rigen por sus propias licencias y condiciones, y no están cubiertos
+por este aviso.
+
+---
+
+Copyright (c) 2026 Diego Gonzalez Rodriguez. All rights reserved.
+
+This code is published for viewing and evaluation only (for example, as a work
+sample). No permission is granted to copy, modify, distribute, sublicense or
+use this software, in whole or in part, for any purpose without the prior
+written permission of the author.
+
+The software is provided "as is", without warranty of any kind.
+
+The AI models and services it uses are governed by their own licenses and
+terms, and are not covered by this notice.
